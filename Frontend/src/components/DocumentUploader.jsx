@@ -85,7 +85,7 @@ export default function DocumentUploader() {
     });
 
     try {
-      const res = await fetch("http://localhost:5000/upload", {
+      const res = await fetch("http://127.0.0.1:8000/upload", {
         method: "POST",
         body: formData,
       });
