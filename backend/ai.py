@@ -18,8 +18,11 @@ Document types handled:
 """
 import json
 import re
-import ollama
-
+try:
+    import ollama
+    _OLLAMA_AVAILABLE = True
+except ImportError:
+    _OLLAMA_AVAILABLE = False
 # ── Prompt templates ──────────────────────────────────────────────────────────
 
 _PROMPT = """You are a data extraction engine for Canadian nonprofit compliance reporting.
@@ -65,18 +68,20 @@ Document text (first 3000 chars):
 
 
 def extract_data(raw_text: str) -> dict:
-    try:
-        prompt = _PROMPT.format(text=raw_text[:3000])
-        resp = ollama.chat(
-            model="llama3",
-            messages=[{"role": "user", "content": prompt}],
-        )
-        content = resp["message"]["content"]
-        data = _parse_json(content)
-        data.setdefault("_confidence", "high")
-        return data
-    except Exception:
-        return _heuristic_parse(raw_text)
+    if _OLLAMA_AVAILABLE:
+        try:
+            prompt = _PROMPT.format(text=raw_text[:3000])
+            resp = ollama.chat(
+                model="llama3",
+                messages=[{"role": "user", "content": prompt}],
+            )
+            content = resp["message"]["content"]
+            data = _parse_json(content)
+            data.setdefault("_confidence", "high")
+            return data
+        except Exception:
+            pass
+    return _heuristic_parse(raw_text)
 
 
 # ── JSON helpers ──────────────────────────────────────────────────────────────
@@ -268,6 +273,34 @@ def _heuristic_parse(text: str) -> dict:
                 "cost_dollars": _extract_cost_dollars(text),
                 "_confidence":  "medium",  # m³→GJ conversion adds uncertainty
             }
+
+    # ── Generic natural gas fallback — any GJ value, no vendor required ───
+    gj_generic = _RE_GJ.findall(text)
+    if gj_generic:
+        amount = float(gj_generic[-1].replace(",", ""))
+        if amount > 0:
+            return {
+                "type":         "natural_gas",
+                "amount":       amount,
+                "unit":         "GJ",
+                "period":       _extract_period(text),
+                "provider":     _detect_provider(text),
+                "cost_dollars": _extract_cost_dollars(text),
+                "_confidence":  "medium",
+            }
+
+    # ── Generic fuel fallback — any litre value, no vendor required ───────
+    generic_litres = _extract_litres(text)
+    if generic_litres is not None and generic_litres > 0:
+        return {
+            "type":         "fuel",
+            "amount":       generic_litres,
+            "unit":         "L",
+            "period":       _extract_period(text),
+            "provider":     _detect_provider(text),
+            "cost_dollars": _extract_cost_dollars(text),
+            "_confidence":  "medium",
+        }
 
     # ── Electricity (generic kWh fallback) ────────────────────────────────
     kwh_matches = _RE_KWH.findall(text)

@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+pymupdf
+reportlab
+python-multipart
+pillow
+pytesseract
+requests
+python-dotenv
+openpyxl
+ollama
+tesseract
