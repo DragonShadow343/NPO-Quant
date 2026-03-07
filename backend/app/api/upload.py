@@ -3,7 +3,7 @@ from fastapi import APIRouter, UploadFile, File
 from typing import List
 from app.services import emissions_service, grants_service, report_service
 from ocr import extract_text
-from ai import parse_data
+from ai import extract_data
 
 router = APIRouter()
 
@@ -19,7 +19,7 @@ async def upload_files(files: List[UploadFile] = File(...)):
         text = extract_text(contents)
 
         # 2. AI parsing
-        parsed_data = parse_data(text)
+        parsed_data = extract_data(text)
 
         # 3. Categorize & call services
         file_result = {"filename": file.filename}
