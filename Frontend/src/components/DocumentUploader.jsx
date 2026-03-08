@@ -1,5 +1,4 @@
-import React, { useState } from "react";
-import Navbar from "./Navbar";
+import { useState } from "react";
 
 const STATUS_STYLE = {
   queued:     "bg-gray-200 text-gray-600",
@@ -9,11 +8,11 @@ const STATUS_STYLE = {
   error:      "bg-red-100 text-red-700",
 };
 
-export default function DocumentUploader() {
-  const [files, setFiles]       = useState([]);
-  const [error, setError]       = useState("");
+export default function DocumentUploader({ onDone }) {
+  const [files, setFiles]         = useState([]);
+  const [error, setError]         = useState("");
   const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState([]);
+  const [progress, setProgress]   = useState([]);
 
   const addFiles = (incoming) => {
     const duplicates = incoming.some((nf) =>
@@ -31,14 +30,14 @@ export default function DocumentUploader() {
   const handleDrop       = (e) => { e.preventDefault(); addFiles(Array.from(e.dataTransfer.files)); };
   const handleDragOver   = (e) => e.preventDefault();
 
-  const uploadAllFiles = async () => {
+  const handleSubmit = async () => {
     if (files.length === 0) { setError("No files to upload"); return; }
 
     setUploading(true);
     setError("");
     setProgress(files.map((f) => ({ name: f.name, status: "queued" })));
 
-    const approvedIds = [];
+    const collected = [];
 
     for (let i = 0; i < files.length; i++) {
       setProgress((p) => p.map((s, j) => j === i ? { ...s, status: "processing" } : s));
@@ -52,16 +51,8 @@ export default function DocumentUploader() {
           body: formData,
         });
         if (!res.ok) throw new Error(await res.text());
-
         const data = await res.json();
-
-        if (!data.needs_manual_review && data.id !== undefined) {
-          const approveRes = await fetch(`http://localhost:8000/approve/${data.id}`, {
-            method: "POST",
-          });
-          if (approveRes.ok) approvedIds.push(data.id);
-        }
-
+        collected.push(data);
         setProgress((p) =>
           p.map((s, j) =>
             j === i ? { ...s, status: data.needs_manual_review ? "review" : "done" } : s
@@ -73,34 +64,14 @@ export default function DocumentUploader() {
       }
     }
 
-    if (approvedIds.length > 0) {
-      try {
-        const pdfRes = await fetch("http://localhost:8000/export/pdf");
-        if (!pdfRes.ok) throw new Error("PDF generation failed");
-        const blob = await pdfRes.blob();
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement("a");
-        a.href     = url;
-        a.download = "NPOQuant_Carbon_Report.pdf";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } catch (err) {
-        setError("Uploads done but PDF generation failed — check backend logs.");
-      }
-    } else {
-      setError("All documents were flagged for manual review — PDF not generated.");
-    }
-
     setUploading(false);
-    setFiles([]);
-    setProgress([]);
+    if (collected.length > 0) {
+      onDone(collected);
+    }
   };
 
   return (
     <div className="h-screen w-full border-2 relative flex justify-around items-center">
-      <Navbar />
 
       <div className="flex flex-col items-center">
         <label
@@ -153,10 +124,10 @@ export default function DocumentUploader() {
           </div>
           <button
             className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
-            onClick={uploadAllFiles}
+            onClick={handleSubmit}
             disabled={uploading}
           >
-            {uploading ? "Processing..." : "Send Reports"}
+            {uploading ? "Processing..." : "Submit"}
           </button>
         </div>
       )}

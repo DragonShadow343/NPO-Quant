@@ -86,15 +86,24 @@ def _local_estimate(doc_type: str, amount: float) -> dict:
 
 
 def estimate_vehicle_emissions(distance_km: float) -> dict:
+    if not API_KEY or distance_km <= 0:
+        return {"co2e": 0.0, "co2e_unit": "kg", "_fallback": True}
     payload = {
         "emission_factor": {
             "activity_id": "passenger_vehicle-vehicle_type_car-fuel_source_petrol-distance_na-engine_size_na"
         },
         "parameters": {"distance": distance_km, "distance_unit": "km"},
     }
-    response = requests.post(
-        CLIMATIQ_API_URL,
-        json=payload,
-        headers={"Authorization": f"Bearer {API_KEY}"},
-    )
-    return response.json()
+    try:
+        response = requests.post(
+            CLIMATIQ_API_URL,
+            json=payload,
+            headers={"Authorization": f"Bearer {API_KEY}"},
+            timeout=10,
+        )
+        data = response.json()
+        if response.status_code == 200 and "co2e" in data:
+            return {"co2e": data["co2e"], "co2e_unit": data.get("co2e_unit", "kg"), "_fallback": False}
+    except Exception:
+        pass
+    return {"co2e": 0.0, "co2e_unit": "kg", "_fallback": True}

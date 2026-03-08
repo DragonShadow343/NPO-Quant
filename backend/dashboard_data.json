@@ -1,0 +1,124 @@
+{
+  "carbon": [],
+  "accounting": [
+    {
+      "month": "Dec 2023",
+      "inflow": 0.0,
+      "expense": 1381.2,
+      "profit_loss": -1381.2
+    }
+  ],
+  "category_totals": {
+    "Payroll": 1381.2
+  },
+  "grants": [
+    {
+      "month": "Overall",
+      "eligibility_percent": 0,
+      "breakdown": [
+        {
+          "category": "electricity",
+          "label": "Electricity / Scope 2 (BC Hydro)",
+          "covered": false,
+          "not_applicable": false,
+          "na_reason": null,
+          "missing": true
+        },
+        {
+          "category": "natural_gas",
+          "label": "Natural Gas / Scope 1 (FortisBC)",
+          "covered": false,
+          "not_applicable": false,
+          "na_reason": null,
+          "missing": true
+        },
+        {
+          "category": "fuel",
+          "label": "Fleet Fuel / Scope 1 (Diesel)",
+          "covered": false,
+          "not_applicable": false,
+          "na_reason": null,
+          "missing": true
+        },
+        {
+          "category": "social",
+          "label": "Volunteer & Social Impact",
+          "covered": false,
+          "not_applicable": false,
+          "na_reason": null,
+          "missing": true
+        }
+      ]
+    }
+  ],
+  "grants_detail": {
+    "score": 0,
+    "covered_count": 0,
+    "na_count": 0,
+    "documented_count": 0,
+    "total_categories": 4,
+    "breakdown": [
+      {
+        "category": "electricity",
+        "label": "Electricity / Scope 2 (BC Hydro)",
+        "covered": false,
+        "not_applicable": false,
+        "na_reason": null,
+        "missing": true
+      },
+      {
+        "category": "natural_gas",
+        "label": "Natural Gas / Scope 1 (FortisBC)",
+        "covered": false,
+        "not_applicable": false,
+        "na_reason": null,
+        "missing": true
+      },
+      {
+        "category": "fuel",
+        "label": "Fleet Fuel / Scope 1 (Diesel)",
+        "covered": false,
+        "not_applicable": false,
+        "na_reason": null,
+        "missing": true
+      },
+      {
+        "category": "social",
+        "label": "Volunteer & Social Impact",
+        "covered": false,
+        "not_applicable": false,
+        "na_reason": null,
+        "missing": true
+      }
+    ],
+    "key_factors_lacking": [
+      {
+        "category": "electricity",
+        "label": "Electricity / Scope 2 (BC Hydro)",
+        "reason": "No approved document on file",
+        "remediation": "Upload a BC Hydro electricity invoice (PDF or image). The AI will extract kWh consumption and compute Scope 2 CO\u2082e automatically. Typical document: monthly utility bill naming 'BC Hydro' and showing kWh consumed."
+      },
+      {
+        "category": "natural_gas",
+        "label": "Natural Gas / Scope 1 (FortisBC)",
+        "reason": "No approved document on file",
+        "remediation": "Upload a FortisBC natural gas bill (PDF or image). The AI will extract GJ consumed and calculate Scope 1 CO\u2082e at 51.35 kg CO\u2082e/GJ. Typical document: quarterly utility invoice from FortisBC Energy Inc."
+      },
+      {
+        "category": "fuel",
+        "label": "Fleet Fuel / Scope 1 (Diesel)",
+        "reason": "No approved document on file",
+        "remediation": "Upload fleet fuel receipts (PDF, image) or a fleet fuel log (CSV/XLSX). The AI will extract litres dispensed and compute Scope 1 CO\u2082e at 2.681 kg CO\u2082e/L. Petro-Canada, Esso, Shell, and Co-op receipts are all recognised automatically."
+      },
+      {
+        "category": "social",
+        "label": "Volunteer & Social Impact",
+        "reason": "No approved document on file",
+        "remediation": "Upload a volunteer sign-in sheet (image/PDF) or a volunteer log (CSV/XLSX). The AI will extract volunteer names, hours, and compute community value at $30/hr. Typical document: a dated sign-in sheet listing names, start/end times, and activity."
+      }
+    ],
+    "approved_docs": 1
+  },
+  "last_updated": "2026-03-07T23:58:37.796722",
+  "total_approved": 1
+}

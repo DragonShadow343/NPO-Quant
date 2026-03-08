@@ -1,1 +1,22 @@
 @import "tailwindcss";
+
+@layer components {
+  .btn-primary {
+    @apply border border-black bg-black text-white font-mono font-bold text-xs
+           uppercase tracking-widest px-5 py-2
+           hover:bg-white hover:text-black
+           active:opacity-70 transition-colors cursor-pointer;
+  }
+  .btn-ghost {
+    @apply border border-black/35 bg-white text-black/60 font-mono text-xs
+           uppercase tracking-widest px-5 py-2
+           hover:border-black hover:text-black
+           active:opacity-70 transition-colors cursor-pointer;
+  }
+  .badge-carbon   { @apply px-1.5 py-0.5 text-[10px] font-mono border border-black/40 text-black/80 uppercase tracking-wider; }
+  .badge-social   { @apply px-1.5 py-0.5 text-[10px] font-mono border border-black/40 text-black/80 uppercase tracking-wider; }
+  .badge-acct     { @apply px-1.5 py-0.5 text-[10px] font-mono border border-black/40 text-black/80 uppercase tracking-wider; }
+  .badge-ok       { @apply px-1.5 py-0.5 text-[10px] font-mono border border-black text-black uppercase tracking-wider; }
+  .badge-pending  { @apply px-1.5 py-0.5 text-[10px] font-mono border border-black/35 text-black/55 uppercase tracking-wider; }
+  .badge-rejected { @apply px-1.5 py-0.5 text-[10px] font-mono border border-black/15 text-black/25 uppercase tracking-wider; }
+}
