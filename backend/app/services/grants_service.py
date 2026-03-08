@@ -1,5 +1,7 @@
 from typing import List
 
+from app.services.accounting_service import _normalize_period
+
 GRANT_CATEGORIES = {
     "electricity": "Electricity / Scope 2 (BC Hydro)",
     "natural_gas": "Natural Gas / Scope 1 (FortisBC)",
@@ -36,17 +38,24 @@ def compute_readiness(approved: List[dict], na_categories: dict = None) -> dict:
     """
     GHG Protocol Completeness: covered data OR declared N/A both count as documented.
     Score = documented / total * 100.
+    Only documents with a known (normalizable) period count, so readiness reflects
+    time-attributed evidence (aligned with accounting/carbon).
     """
     na_categories = na_categories or {}
     covered: set = set()
 
     for r in approved:
         raw      = r.get("raw") or {}
+        period   = raw.get("period", r.get("period", "Unknown"))
+        if _normalize_period(period) == "Unknown":
+            continue  # don't count unknown-period docs toward grant readiness
         doc_type = raw.get("type", r.get("doc_type", ""))
         mods     = r.get("modules") or {}
 
         if doc_type in GRANT_CATEGORIES:
             covered.add(doc_type)
+        if doc_type == "mileage":
+            covered.add("fuel")  # mileage = fleet/transport, same grant category as fuel
         if r.get("category") == "social" or doc_type in ("volunteers", "social"):
             covered.add("social")
 

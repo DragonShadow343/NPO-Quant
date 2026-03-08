@@ -39,11 +39,13 @@ export default function DocumentUploader({ onDone }) {
 
     const collected = [];
 
-    for (let i = 0; i < files.length; i++) {
-      setProgress((p) => p.map((s, j) => j === i ? { ...s, status: "processing" } : s));
+    for (const file of files) {
+      setProgress((p) =>
+        p.map((s) => s.name === file.name ? { ...s, status: "processing" } : s)
+      );
 
       const formData = new FormData();
-      formData.append("file", files[i]);
+      formData.append("file", file);
 
       try {
         const res = await fetch("http://localhost:8000/upload", {
@@ -53,14 +55,15 @@ export default function DocumentUploader({ onDone }) {
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         collected.push(data);
+
         setProgress((p) =>
-          p.map((s, j) =>
-            j === i ? { ...s, status: data.needs_manual_review ? "review" : "done" } : s
-          )
+          p.map((s) => s.name === file.name ? { ...s, status: data.needs_manual_review ? "review" : "done" } : s)
         );
       } catch (err) {
-        setProgress((p) => p.map((s, j) => j === i ? { ...s, status: "error" } : s));
-        setError(`Failed on: ${files[i].name}`);
+        setProgress((p) =>
+          p.map((s) => s.name === file.name ? { ...s, status: "error" } : s)
+        );
+        setError(`Failed on: ${file.name}`);
       }
     }
 

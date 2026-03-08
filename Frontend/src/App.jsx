@@ -14,14 +14,14 @@ function UploadFlow() {
 
   return (
     <div className="h-screen w-full relative flex flex-col">
-      <Navbar
+      {/* <Navbar
         activeTab={view === "upload" ? "Documents" : view === "review" ? "Review" : "Dashboard"}
         onTabChange={(tab) => {
           if (tab === "Dashboard") { navigate("/dashboard"); return; }
           const v = TAB_MAP[tab]
           if (v) setView(v)
         }}
-      />
+      /> */}
 
       {view === "upload" && (
         <DocumentUploader

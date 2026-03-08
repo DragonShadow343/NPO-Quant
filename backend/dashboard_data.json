@@ -2,14 +2,14 @@
   "carbon": [],
   "accounting": [
     {
-      "month": "January 2026",
-      "inflow": 15000.0,
-      "expense": 9700.0,
-      "profit_loss": 5300.0
+      "month": "July 2023",
+      "inflow": 3360.0,
+      "expense": 0.0,
+      "profit_loss": 3360.0
     }
   ],
   "category_totals": {
-    "Operations Summary": 15000.0
+    "Volunteer Value": 3920.0
   },
   "grants": [
     {
@@ -113,6 +113,6 @@
     ],
     "approved_docs": 1
   },
-  "last_updated": "2026-03-08T00:42:58.247929",
+  "last_updated": "2026-03-08T01:28:52.033050",
   "total_approved": 1
 }

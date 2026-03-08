@@ -3,7 +3,7 @@ import io
 import csv
 import os
 import pytesseract
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 _IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".tiff", ".tif"}
 

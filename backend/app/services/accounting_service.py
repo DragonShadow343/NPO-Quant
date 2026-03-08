@@ -1,10 +1,55 @@
+import re
 from collections import defaultdict
+from datetime import datetime
 from typing import List, Optional
 
 # Quad Banks Canada standard cost per pound for food valuation
 FOOD_COST_PER_LB = 3.58
 # BC volunteer rate
 VOLUNTEER_WAGE = 30.00
+
+
+def _normalize_period(period: str) -> str:
+    """Normalize period to YYYY-MM for consistent aggregation (e.g. 'Dec 2023' and 'December 2023' → same key)."""
+    if not period or not isinstance(period, str):
+        return "Unknown"
+    period = period.strip()
+    if period in ("Unknown Period", "Unknown", ""):
+        return "Unknown"
+    # Year only: "2024" → "2024-01"
+    if re.fullmatch(r"\d{4}", period):
+        return f"{period}-01"
+    # Date: "2023-07-12" → "2023-07"
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", period):
+        return period[:7]
+    # Already YYYY-MM
+    if re.fullmatch(r"\d{4}-\d{2}", period):
+        return period
+    # "January 2026", "April 2024"
+    try:
+        dt = datetime.strptime(period, "%B %Y")
+        return dt.strftime("%Y-%m")
+    except ValueError:
+        pass
+    try:
+        dt = datetime.strptime(period, "%b %Y")
+        return dt.strftime("%Y-%m")
+    except ValueError:
+        pass
+    return period  # leave as-is if unparseable (will not merge with others)
+
+
+def _format_month_display(month_key: str) -> str:
+    """Format YYYY-MM as 'Month YYYY' for dashboard display."""
+    if not month_key or month_key == "Unknown":
+        return "Unknown"
+    if len(month_key) < 7:
+        return month_key
+    try:
+        dt = datetime.strptime(month_key[:7], "%Y-%m")
+        return dt.strftime("%B %Y")
+    except ValueError:
+        return month_key
 
 
 def aggregate(
@@ -39,6 +84,7 @@ def aggregate(
         raw      = r.get("raw") or {}
         doc_type = raw.get("type", r.get("doc_type", "unknown"))
         period   = raw.get("period", r.get("period", "Unknown"))
+        norm     = _normalize_period(period)
         cost     = raw.get("cost_dollars") or 0.0
         category = r.get("category", "")
 
@@ -46,13 +92,13 @@ def aggregate(
         if doc_type == "grant" and cost > 0:
             revenue_lines["grants"]              += cost
             category_rev["grants"]               += cost
-            monthly[period]["inflow"]            += cost
+            monthly[norm]["inflow"]            += cost
             total_inflow                         += cost
 
         elif doc_type == "goods_donated" and cost > 0:
             revenue_lines["goods_donated"]       += cost
             category_rev["goods_donated"]        += cost
-            monthly[period]["inflow"]            += cost
+            monthly[norm]["inflow"]            += cost
             total_inflow                         += cost
 
         # ── Accounting summary CSV (overall financial overview) ────────────
@@ -62,12 +108,12 @@ def aggregate(
             if inflow_val > 0:
                 revenue_lines["grants"]          += inflow_val   # treated as operating revenue
                 category_rev["operating_revenue"] += inflow_val
-                monthly[period]["inflow"]         += inflow_val
+                monthly[norm]["inflow"]         += inflow_val
                 total_inflow                      += inflow_val
             if expense_val > 0:
                 expense_lines["supplies_occupancy"] += expense_val
                 category_exp["operating_expenses"]  += expense_val
-                monthly[period]["expense"]          += expense_val
+                monthly[norm]["expense"]          += expense_val
                 total_expense                       += expense_val
 
         # ── Payroll / paystub ─────────────────────────────────────────────
@@ -76,7 +122,7 @@ def aggregate(
             if wage_val > 0:
                 expense_lines["wages_benefits"]  += wage_val
                 category_exp["wages"]            += wage_val
-                monthly[period]["expense"]       += wage_val
+                monthly[norm]["expense"]       += wage_val
                 total_expense                    += wage_val
 
         # ── Disbursement voucher / expense log XLSX ────────────────────────
@@ -113,19 +159,19 @@ def aggregate(
                     expense_lines["supplies_occupancy"] += item_amt
                 category_exp["expenses"] += item_amt
                 total_expense            += item_amt
-            monthly[period]["expense"] += sum(float(i.get("amount_dollars") or 0) for i in dv_items)
+            monthly[norm]["expense"] += sum(float(i.get("amount_dollars") or 0) for i in dv_items)
 
         # ── Expense documents ──────────────────────────────────────────────
         elif doc_type in ("electricity", "natural_gas") and cost > 0:
             expense_lines["telephone_utilities"] += cost
             category_exp[doc_type]               += cost
-            monthly[period]["expense"]           += cost
+            monthly[norm]["expense"]           += cost
             total_expense                        += cost
 
         elif doc_type in ("fuel", "mileage") and cost > 0:
             expense_lines["automotive"]          += cost
             category_exp[doc_type]               += cost
-            monthly[period]["expense"]           += cost
+            monthly[norm]["expense"]           += cost
             total_expense                        += cost
 
         # ── Volunteer / social documents ───────────────────────────────────
@@ -134,21 +180,24 @@ def aggregate(
             vols  = r.get("total_volunteers") or 0
             total_volunteer_hours += hours
             total_volunteers      += vols
-            volunteer_hours_by_period[period] += hours
+            volunteer_hours_by_period[norm] += hours
             # Volunteer value is treated as in-kind goods donated revenue
             val = round(hours * VOLUNTEER_WAGE, 2)
             revenue_lines["goods_donated"]       += val
             category_rev["volunteer_service"]    += val
-            monthly[period]["inflow"]            += val
+            monthly[norm]["inflow"]            += val
             total_inflow                         += val
 
-    # ── Monthly summary ────────────────────────────────────────────────────
+    # ── Monthly summary (one row per normalized month, display-friendly labels) ─
+    # Skip "Unknown" so we don't show a single misleading row mixing unrelated docs with no period.
     monthly_summary = []
-    for month, data in sorted(monthly.items()):
+    for month_key, data in sorted(monthly.items()):
+        if month_key == "Unknown":
+            continue
         net = data["inflow"] - data["expense"]
         pct = round(net / data["inflow"] * 100, 1) if data["inflow"] else 0.0
         monthly_summary.append({
-            "month":               month,
+            "month":               _format_month_display(month_key),
             "inflow":              round(data["inflow"],  2),
             "expense":             round(data["expense"], 2),
             "profit_loss":         round(net, 2),

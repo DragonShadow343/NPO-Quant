@@ -80,96 +80,42 @@ DASHBOARD_PATH = Path("dashboard_data.json")
 def build_dashboard_data() -> dict:
     """
     Aggregate all approved store items into dashboard-ready JSON.
-    Uses each item's `modules` dict so that a single document (e.g. an
-    electricity bill) contributes to BOTH the carbon AND accounting streams.
+    Uses each item's `modules` dict for accounting and grants.
+    Carbon data is now generated via carbon_service.aggregate_monthly to ensure proper month normalization and aggregation.
     """
     approved = [r for r in _store if r.get("status") == "approved"]
 
-    carbon_by_period: dict     = defaultdict(lambda: {"total_emissions": 0.0, "composition": defaultdict(float)})
-    accounting_by_period: dict = defaultdict(lambda: {"inflow": 0.0, "expense": 0.0})
-    category_totals: dict      = defaultdict(float)
+    # --- CARBON ---
+    # aggregate_monthly() applies optional sanity caps (env: CARBON_MAX_KG_PER_DOCUMENT, CARBON_MAX_KG_PER_MONTH)
+    # so extreme single-document or monthly totals do not dominate the dashboard; raw _store is unchanged.
+    from app.services.carbon_service import aggregate_monthly
+    carbon_list = aggregate_monthly(approved)
 
+    # --- ACCOUNTING ---
+    # Use accounting_service.aggregate() for one row per (normalized) month; category_totals still from modules.
+    agg = accounting_aggregate(approved)
+    accounting_list = [
+        {"month": m["month"], "inflow": m["inflow"], "expense": m["expense"], "profit_loss": m["profit_loss"]}
+        for m in agg["monthly"]
+    ]
+    category_totals = defaultdict(float)
     for r in approved:
         mods = r.get("modules") or {}
-
-        # ── CARBON module ─────────────────────────────────────────────────
-        # Pull the actual computed kg_co2e (set by climatiq / impact_math)
-        # but use the module's period/doc_type for bucketing.
-        carbon_mod = mods.get("carbon")
-        if carbon_mod:
-            period   = _clean_period(carbon_mod.get("period") or (r.get("raw") or {}).get("period"))
-            doc_type = carbon_mod.get("doc_type", "other")
-
-            if doc_type == "carbon_summary":
-                # Comprehensive multi-category carbon CSV: use component breakdown
-                components = carbon_mod.get("components") or {}
-                total_co2e = carbon_mod.get("amount", 0) or r.get("kg_co2e") or 0.0
-                if components:
-                    for comp_key, comp_kg in components.items():
-                        carbon_by_period[period]["total_emissions"] += comp_kg
-                        carbon_by_period[period]["composition"][comp_key] += comp_kg
-                elif total_co2e:
-                    carbon_by_period[period]["total_emissions"] += total_co2e
-                    carbon_by_period[period]["composition"]["other"] += total_co2e
-            elif r.get("kg_co2e") is not None:
-                kg       = r.get("kg_co2e") or 0.0
-                comp_key = doc_type if doc_type in ("fuel", "electricity", "natural_gas", "mileage") else "other"
-                carbon_by_period[period]["total_emissions"] += kg
-                carbon_by_period[period]["composition"][comp_key] += kg
-
-        # ── ACCOUNTING module ─────────────────────────────────────────────
-        # Covers utilities, fleet, grants, donations, payroll, volunteers —
-        # extracted from every doc type that has accounting data.
         acct_mod = mods.get("accounting")
-        if acct_mod:
-            period    = _clean_period(acct_mod.get("period"))
-            flow_type = acct_mod.get("flow_type", "expense")
-            category  = acct_mod.get("category", "Other")
+        if not acct_mod:
+            continue
+        category = acct_mod.get("category", "Other")
+        amount = acct_mod.get("amount_dollars") or 0.0
+        if acct_mod.get("flow_type") == "summary":
+            if acct_mod.get("total_inflow", 0) > 0:
+                category_totals[category] += acct_mod.get("total_inflow", 0)
+        elif amount > 0:
+            category_totals[category] += amount
 
-            if flow_type == "summary":
-                # Comprehensive monthly summary: has both inflow and expense
-                accounting_by_period[period]["inflow"]  += acct_mod.get("total_inflow",  0.0)
-                accounting_by_period[period]["expense"] += acct_mod.get("total_expense", 0.0)
-                if acct_mod.get("total_inflow", 0) > 0:
-                    category_totals[category] += acct_mod.get("total_inflow", 0)
-            else:
-                amount = acct_mod.get("amount_dollars") or 0.0
-                if flow_type in ("inflow", "social_value"):
-                    accounting_by_period[period]["inflow"] += amount
-                else:
-                    accounting_by_period[period]["expense"] += amount
-                if amount > 0:
-                    category_totals[category] += amount
-
-        # ── GRANTS module ─────────────────────────────────────────────────
-        # Grants readiness is computed separately by compute_readiness().
-        # Nothing to aggregate here — it's a score, not a sum.
-
-    # Build carbon list
-    carbon_list = []
-    for month, data in sorted(carbon_by_period.items()):
-        carbon_list.append({
-            "month":           month,
-            "total_emissions": round(data["total_emissions"], 3),
-            "composition":     {k: round(v, 3) for k, v in data["composition"].items() if v > 0},
-        })
-
-    # Build accounting list
-    accounting_list = []
-    for month, data in sorted(accounting_by_period.items()):
-        inflow  = round(data["inflow"], 2)
-        expense = round(data["expense"], 2)
-        accounting_list.append({
-            "month":       month,
-            "inflow":      inflow,
-            "expense":     expense,
-            "profit_loss": round(inflow - expense, 2),
-        })
-
-    # Grants readiness score
+    # --- GRANTS ---
     grants_score = compute_readiness(approved, _na_categories)
-    grants_list  = [{"month": "Overall", "eligibility_percent": grants_score["score"],
-                     "breakdown": grants_score.get("breakdown", [])}]
+    grants_list = [{"month": "Overall", "eligibility_percent": grants_score["score"],
+                    "breakdown": grants_score.get("breakdown", [])}]
 
     return {
         "carbon":          carbon_list,
