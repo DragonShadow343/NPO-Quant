@@ -1,0 +1,21 @@
+[33m9858d48[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mbackendWork[m[33m)[m Merge remote main with local backend + dashboard integration
+[33m6c636ba[m Connect dashboard to backend, PDF downloads, routing
+[33m0598d38[m[33m ([m[1;34mgrafted[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Created dashboard. Only thing left is to connct the data endpoints to receive data from the backend
+[33m2a3c088[m[33m ([m[1;31morigin/backendWork[m[33m)[m Carbon document reading
+[33m001d8db[m Merge branch 'main' of https://github.com/DragonShadow343/NPO-Quant into backendWork
+[33m433c763[m Saving current progress - Mathijs
+[33m0465cf3[m Added services that produce monthly data extracted from the files.
+[33ma285a56[m Created api endpoint in the backend and altered api endpoint in the frontend
+[33mea67140[m Added climatiq API
+[33md8ee5fd[m Merge branch 'main' of https://github.com/DragonShadow343/NPO-Quant
+[33mf50d3a2[m added odoo
+[33mf5b24d4[m Merge pull request #2 from DragonShadow343/backendwork
+[33ma1f5c26[m Ai logic, fake documents
+[33m4435794[m Merge remote-tracking branch 'origin/main' into backendwork
+[33m82cdf56[m Saving my files before updating
+[33m7b5c035[m Added rest of backend folders
+[33m328ada4[m Added basic backend folders and files
+[33m4d14f5c[m Created the frontend and made the document upload page
+[33m0e88c41[m Merge pull request #1 from DragonShadow343/backendwork
+[33m2014931[m Add backend folder
+[33mf7440ec[m[33m ([m[1;31morigin/backendwork[m[33m, [m[1;32mmain[m[33m)[m Initial commit
